@@ -41,13 +41,13 @@ class Hand:
     def total(self):
         return sum(self.values)
 
-    def yamb(self):
+    def yamb(self, display=False):
         if len(set(self.values)) == 1:
             return 50 + sum(self.values)
         else:
-            return 0
+            return "X" if display else 0
 
-    def ful(self):
+    def ful(self, display=False):
         dice_set = set(self.values)
         if len(dice_set) == 2 and any(
             [
@@ -57,9 +57,9 @@ class Hand:
         ):
             return 30 + sum(self.values)
         else:
-            return 0
+            return "X" if display else 0
 
-    def kare(self):
+    def kare(self, display=False):
         dice_set = set(self.values)
         if len(dice_set) == 2 and any(
             [
@@ -73,17 +73,18 @@ class Hand:
                 else 4 * dice_set[1]
             )
         else:
-            return 0
+            return "X" if display else 0
 
-    def kenta(self):
+    def kenta(self, display=False):
         score = {1: 66, 2: 56, 3: 46}
         if sorted(self.values) in [[1, 2, 3, 4, 5], [2, 3, 4, 5, 6]] and self.rolls < 4:
             return score[self.rolls]
         else:
-            return 0
+            return "X" if display else 0
 
-    def count_value(self, number):
-        return self.values.count(number) * number
+    def count_value(self, number, display=False):
+        count = self.values.count(number)
+        return "X" if display and not count else count * number
 
 
 class Column(list):
@@ -101,6 +102,20 @@ class Column(list):
         methodcaller("kare"),
         methodcaller("yamb"),
     ]
+    display_methods = [
+        methodcaller("count_value", 1, display=True),
+        methodcaller("count_value", 2, display=True),
+        methodcaller("count_value", 3, display=True),
+        methodcaller("count_value", 4, display=True),
+        methodcaller("count_value", 5, display=True),
+        methodcaller("count_value", 6, display=True),
+        methodcaller("total"),
+        methodcaller("total"),
+        methodcaller("kenta", display=True),
+        methodcaller("ful", display=True),
+        methodcaller("kare", display=True),
+        methodcaller("yamb", display=True),
+    ]
 
     def pad(self, size, fillvalue=None):
         return self + [fillvalue] * (size - len(self))
@@ -108,16 +123,16 @@ class Column(list):
     def ordered(self):
         return self.pad(len(self.score_methods))
 
-    @property
-    def raw_scores(self):
+    def raw_scores(self, display=False):
+        methods = self.display_methods if display else self.score_methods
         return [
-            method(hand) if hand is not None else 0
-            for method, hand in zip(self.score_methods, self.ordered(),)
+            method(hand) if hand is not None else "" if display else 0
+            for method, hand in zip(methods, self.ordered(),)
         ]
 
     @property
     def counts(self):
-        return sum(self.raw_scores[:6])
+        return sum(self.raw_scores()[:6])
 
     @property
     def bonus(self):
@@ -125,18 +140,22 @@ class Column(list):
 
     @property
     def difference(self):
-        return self.raw_scores[0] * (self.raw_scores[6] - self.raw_scores[7])
+        return self.raw_scores()[0] * (self.raw_scores()[6] - self.raw_scores()[7])
 
     @property
     def specials(self):
-        return sum(self.raw_scores[8:])
+        return sum(self.raw_scores()[8:])
 
-    @property
-    def scores(self):
-        scores = self.raw_scores
+    def scores(self, display=False):
+        scores = self.raw_scores(display=display)
         scores.insert(6, self.counts + self.bonus)
-        scores.insert(8, self.difference)
-        scores.append(self.specials)
+        scores.insert(
+            9,
+            "-"
+            if len(self) < 8 or not all((self[0], self[6], self[7]))
+            else self.difference,
+        )
+        scores.append(self.specials if len(self) == 14 else "-")
         return scores
 
 
@@ -187,12 +206,13 @@ class Card:
 
     def print(self):
         print(self.print_template.format(*self.column_labels))
-        for i in self.scores:
+        for i in self.scores(display=True):
             print(self.print_template.format(*i))
 
-    @property
-    def scores(self):
+    def scores(self, display=False):
         return [
             (a, b, c, d, e)
-            for a, b, c, d, e in zip(self.labels, *[i.scores for i in self.columns])
+            for a, b, c, d, e in zip(
+                self.labels, *[i.scores(display=display) for i in self.columns]
+            )
         ]
