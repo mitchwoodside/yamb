@@ -22,13 +22,6 @@ class Hand:
     def values(self):
         return [d.value for d in self.dice]
 
-    def roll(self):
-        self.rolls += 1
-        for d in self.dice:
-            if not d.keep:
-                d.roll()
-        return self.values
-
     @property
     def keep(self):
         return [d.keep for d in self.dice]
@@ -37,6 +30,13 @@ class Hand:
     def keep(self, keep):
         for i, die in enumerate(self.dice):
             die.keep = keep[i]
+
+    def roll(self):
+        self.rolls += 1
+        for d in self.dice:
+            if not d.keep:
+                d.roll()
+        return self.values
 
     def total(self):
         return sum(self.values)
