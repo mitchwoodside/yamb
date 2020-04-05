@@ -3,6 +3,8 @@ from operator import methodcaller
 
 
 class Die:
+    value = None
+
     def __init__(self):
         self.keep = False
 
@@ -60,16 +62,16 @@ class Hand:
             return "X" if display else 0
 
     def kare(self, display=False):
-        dice_set = set(self.values)
+        dice_set = list(set(self.values))
         if len(dice_set) == 2 and any(
             [
                 self.values.count(self.values[0]) == 1,
                 self.values.count(self.values[0]) == 4,
             ]
         ):
-            return 40 + sum(
-                4 * dice_set[0]
-                if self.values.count(list(dice_set[0])) == 4
+            return (
+                40 + 4 * dice_set[0]
+                if self.values.count(dice_set[0]) == 4
                 else 4 * dice_set[1]
             )
         else:
